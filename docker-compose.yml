@@ -1,0 +1,52 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: library-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: library
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+      - ./mysql/conf.d:/etc/mysql/conf.d:ro
+    networks:
+      - library-network
+    restart: unless-stopped
+
+  backend:
+    image: luotinghao/library-backend:latest
+    container_name: library-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: 123456
+      DB_NAME: library
+      JWT_SECRET: 7c443bce9cc4cfe525b4d4f7c2758089e8feacb6582d8e8fc9423cbdc26f4385
+      JWT_EXPIRES_IN: 3d
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysql
+    networks:
+      - library-network
+    restart: unless-stopped
+
+  nginx:
+    image: luotinghao/library-nginx:latest
+    container_name: library-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - library-network
+    restart: unless-stopped
+
+networks:
+  library-network:
+    driver: bridge
